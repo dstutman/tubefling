@@ -1,0 +1,14 @@
+{
+  "name": "tubefling",
+  "restart": "always",
+  "domain": "tubefling.depl.stutman.tech",
+  "rateLimit": {
+    "period": "60s",
+    "average": 5,
+    "burst": 15
+  },
+  "env": {
+    "TMP_DIR": "/tmp",
+    "AUTHORIZED_TOKENS": "@TUBEFLING_TOKENS"
+  }
+}

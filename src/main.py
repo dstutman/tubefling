@@ -58,7 +58,7 @@ def index():
             <h2>Usage</h2>
             <p>
                 Add the following link to your podcast client:
-                https://:YOUR_AUTH_TOKEN@server_address/channel/YT_CHANNEL_ID
+                https://:AUTHORIZED_KEY@HOSTING_URL/channel/CHANNEL_ID.xml
                 dont forget the : preceeding YOUR_AUTH_TOKEN. The token has to be passed as a basicauth password, not a username.
             </p>
         </body>

@@ -22,5 +22,6 @@ The URL format to use is: `https://:AUTHORIZED_KEY@HOSTING_URL/channel/CHANNEL_I
 * Yes you need the : before `AUTHORIZED_KEYS`
 * CHANNEL_ID can be found on the page for the channel, either in the URL or the HTML, search and you'll find it
 
-
-Yes my server address is in deployment config, please don't nuke it
+Note:
+* Yes my server address is in deployment config, please don't nuke it
+* You may need a nice long gunicorn timeout so transcodes don't fail, depending on how long your average video is

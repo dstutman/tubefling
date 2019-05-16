@@ -1,6 +1,6 @@
 # Tubefling
 Tubefling is a MVP to convert a Youtube channel to a MP3 podcast channel.
-It **DOESEN'T** require any Youtube API keys, and it only gives you the last 15 or so episodes, but it does what I want simply and easily.
+It **DOESN'T** require any Youtube API keys, and it only gives you the last 15 or so episodes, but it does what I want simply and easily.
 
 To deploy use the Dockerfile, or, if you dont want that complexity, ensure you have the following:
 * Python Modules

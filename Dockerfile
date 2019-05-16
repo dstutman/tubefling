@@ -14,4 +14,4 @@ WORKDIR /srv/tubefling/
 
 EXPOSE 80
 ENV GUNICORN_TIMEOUT 120
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:80", "--timeout", "echo ${GUNICORN_TIMEOUT}", "main:server"]
+CMD gunicorn -w 1 -b 0.0.0.0:80 --timeout ${GUNICORN_TIMEOUT} main:server

@@ -83,14 +83,19 @@ def get_channel_data(chan_id):
         if child.tag == "{http://www.w3.org/2005/Atom}entry":
             video_ids.append(
                 {
-                    "id": child[1].text,
-                    "published_date": child[6].text,
                     "title": child[3].text,
                     "desc": child[8][3].text,
                     "thumb_url": child[8][2].attrib["url"],
+                    "id": child[1].text,
+                    "published_date": child[6].text,
                 }
             )
-    return {"id": chan_id, "title": root[3].text, "videos": video_ids}
+    return {
+        "title": root[3].text,
+        "homepage_url": root[5].get("href"),
+        "id": chan_id,
+        "videos": video_ids,
+    }
 
 
 @server.route("/channel/<chan_id>.xml")
@@ -99,18 +104,27 @@ def channel(chan_id):
     chan_data = get_channel_data(chan_id)
     chan_xml_str = render_template_string(
         """
-        <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:rawvoice="http://www.rawvoice.com/rawvoiceRssModule/" version="2.0">
             <channel>
                 <title>{{chan_data.title}}</title>
-                <itunes:image href="{{server_base_url}}avatar/{{chan_data.id}}.png"/>
+                <link>{{chan_data.homepage_url}}</link>
+                <image>
+                    <url>{{server_base_url}}avatar/{{chan_data.id}}.png</url>
+                    <title>{{chan_data.title}}</title>
+                    <link>{{chan_data.homepage_url}}</link>
+                </image>
                 <language>en-us</language>
+                <copyright>{{chan_data.title}}</copyright>
                 <lastBuildDate>{{last_build_date}}</lastBuildDate>
+                <itunes:image href="{{server_base_url}}avatar/{{chan_data.id}}.png"/>
                 {% for video in chan_data.videos %}
                 <item>
                     <title>{{video.title}}</title>
                     <description>{{video.desc}}</description>
+                    <itunes:summary>{{video.desc}}</itunes:summary>
                     <itunes:image href="{{video.thumb_url}}"/>
-                    <guid>{{video.id}}</guid>
+                    <guid>{{server_base_url}}video/{{video.id}}.mp3</guid>
+                    <link>{{server_base_url}}video/{{video.id}}.mp3</link>
                     <enclosure url="{{server_base_url}}video/{{video.id}}.mp3" type="audio/mpeg"/>
                     <pubDate>{{video.published_date}}</pubDate>
                 </item>

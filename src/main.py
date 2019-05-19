@@ -4,7 +4,7 @@ Copyright 2019 Daniel Avishai Stutman
 Licenced under the DWTFYWPL
 """
 
-from flask import Flask, request, Response, render_template_string, send_file
+from flask import Flask, request, Response, render_template_string, redirect, url_for
 from functools import wraps
 import requests
 import xml.etree.ElementTree as xml_parser
@@ -13,12 +13,11 @@ import pagan
 import youtube_dl
 import os
 
-server = Flask(__name__)
-
 # Directory for temporary files
 tmp_dir = os.environ["TMP_DIR"]
 auth_tokens = os.environ["AUTHORIZED_TOKENS"].split(",")
 
+server = Flask(__name__, static_folder=tmp_dir)
 
 def check_auth(token):
     return token in auth_tokens
@@ -71,7 +70,7 @@ def index():
 def avatar(uuid):
     file_name = f"avatar_{uuid}.png"
     pagan.Avatar(uuid, pagan.SHA512).save(tmp_dir, file_name)
-    return send_file(f"{tmp_dir}/{file_name}")
+    return redirect(url_for('static', filename=file_name), code=301)
 
 
 def get_channel_data(chan_id):
@@ -139,7 +138,7 @@ def channel(chan_id):
     return Response(chan_xml_str, mimetype="text/xml")
 
 
-@server.route("/video/<video_id>.mp3")
+@server.route("/video/<video_id>.mp3", methods=['GET','POST'])
 @authenticated
 def video(video_id):
     if not os.path.isfile(f"{tmp_dir}/transcoded_{video_id}.mp3"):
@@ -156,8 +155,7 @@ def video(video_id):
         }
         with youtube_dl.YoutubeDL(ytdl_opts) as ytdl:
             ytdl.download([f"https://www.youtube.com/watch?v={video_id}"])
-    return send_file(f"{tmp_dir}/transcoded_{video_id}.mp3")
-
+    return redirect(url_for('static', filename=f"transcoded_{video_id}.mp3"), code=301)
 
 if __name__ == "__main__":
     server.run()

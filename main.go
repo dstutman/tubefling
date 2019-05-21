@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/rylio/ytdl"
 	"github.com/tsdtsdtsd/identicon"
 	"html/template"
@@ -51,17 +51,25 @@ type FeedTemplateContext struct {
 func main() {
 	staticDirectory := os.Getenv("STATIC_DIR")
 	if len(staticDirectory) == 0 {
-		staticDirectory = ""
+		staticDirectory = "/srv/tubefling"
 	}
 	tempDirectory := os.Getenv("TEMP_DIR")
 	if len(tempDirectory) == 0 {
-		tempDirectory = ""
+		tempDirectory = "/tmp"
 	}
-	strings.Split(os.Getenv("AUTHORIZED_TOKENS"), ",")
+	authTokens := strings.Split(os.Getenv("AUTHORIZED_TOKENS"), ",")
 	server := echo.New()
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())
 	server.Use(middleware.Static(staticDirectory))
+	server.Use(middleware.BasicAuth(func(username string, password string, c echo.Context) (bool, error) {
+		for _, token := range authTokens {
+			if password == token {
+				return true, nil
+			}
+		}
+		return false, nil
+	}))
 	feedTemplate, err := template.New("feed").Parse(`
 			<rss version="2.0" xmlns:itunes="http://www.itunes.com/DTDs/Podcast-1.0.dtd" xmlns:media="http://search.yahoo.com/mrss/">
 				<channel>
@@ -95,7 +103,7 @@ func main() {
 	}
 	server.GET("/channel/:channelId", buildChannelRoute(server.Logger, feedTemplate, staticDirectory))
 	server.GET("/video/:videoId", buildVideoRoute(server.Logger, staticDirectory, tempDirectory))
-	server.Logger.Fatal(server.StartServer(&http.Server{Addr: ":1323", ReadTimeout: 5 * time.Minute}))
+	server.Logger.Fatal(server.StartServer(&http.Server{Addr: ":80", ReadTimeout: 5 * time.Minute}))
 }
 
 func buildChannelRoute(logger echo.Logger, feedTemplate *template.Template, staticDirectory string) echo.HandlerFunc {
@@ -158,7 +166,7 @@ func buildVideoRoute(logger echo.Logger, staticDirectory string, temporaryDirect
 			}
 			touchHandle, _ := os.Create(path.Join(staticDirectory, audioFileName))
 			touchHandle.Close()
-			videoHandle, err := os.Create(path.Join(staticDirectory, videoFileName))
+			videoHandle, err := os.Create(path.Join(temporaryDirectory, videoFileName))
 			if err != nil {
 				logger.Error(err)
 				return c.String(http.StatusInternalServerError, "Could not open video file")
@@ -169,7 +177,7 @@ func buildVideoRoute(logger echo.Logger, staticDirectory string, temporaryDirect
 				return c.String(http.StatusServiceUnavailable, "Could not download video")
 			}
 			videoHandle.Close()
-			err = exec.Command("ffmpeg", "-i",  videoFileName, audioFileName, "-y").Run()
+			err = exec.Command("ffmpeg", "-i",  path.Join(temporaryDirectory, videoFileName), path.Join(staticDirectory, audioFileName), "-y").Run()
 			if err != nil {
 				print(err)
 			}

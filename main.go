@@ -59,8 +59,7 @@ func main() {
 	if len(tempDirectory) == 0 {
 		tempDirectory = "tmp"
 	}
-	authTokens := []string{"loltoken"}
-	// authTokens := strings.Split(os.Getenv("AUTHORIZED_TOKENS"), ",")
+	authTokens := strings.Split(os.Getenv("AUTHORIZED_TOKENS"), ",")
 	server := echo.New()
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())

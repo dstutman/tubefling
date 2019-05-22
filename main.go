@@ -158,7 +158,11 @@ func buildChannelRoute(logger echo.Logger, feedTemplate *template.Template, stat
 				}
 				resp, err := http.Get(video.Thumbnail.Text)
 				defer resp.Body.Close()
-				io.Copy(thumb, resp.Body)
+				err := io.Copy(thumb, resp.Body)
+				if err != nil {
+					logger.Error(err)
+					return c.String(http.StatusInternalServerError, "Could not write icon to file")
+				}
 			}
 		}
 		var response bytes.Buffer

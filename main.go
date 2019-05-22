@@ -103,6 +103,8 @@ func main() {
 	}
 	server.GET("/channel/:channelId", buildChannelRoute(server.Logger, feedTemplate, staticDirectory))
 	server.GET("/video/:videoId", buildVideoRoute(server.Logger, staticDirectory, tempDirectory))
+	// We need a nice delay here because sometimes these files can take a while to process, unless
+	// I am misunderstanding this timeout
 	server.Logger.Fatal(server.StartServer(&http.Server{Addr: ":80", ReadTimeout: 5 * time.Minute}))
 }
 
@@ -177,12 +179,12 @@ func buildVideoRoute(logger echo.Logger, staticDirectory string, temporaryDirect
 				return c.String(http.StatusServiceUnavailable, "Could not download video")
 			}
 			videoHandle.Close()
-			err = exec.Command("ffmpeg", "-i",  path.Join(temporaryDirectory, videoFileName), path.Join(staticDirectory, audioFileName), "-y").Run()
+			err = exec.Command("ffmpeg", "-i", path.Join(temporaryDirectory, videoFileName), path.Join(staticDirectory, audioFileName), "-y").Run()
 			if err != nil {
 				print(err)
 			}
 		}
 		baseUrl := c.Request().Host
-		return c.Redirect(http.StatusTemporaryRedirect, "http://" + baseUrl + "/" + audioFileName)
+		return c.Redirect(http.StatusTemporaryRedirect, "http://"+baseUrl+"/"+audioFileName)
 	}
 }

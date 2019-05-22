@@ -10,6 +10,7 @@ import (
 	"github.com/tsdtsdtsd/identicon"
 	"html/template"
 	"image/png"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -32,15 +33,16 @@ type ChannelURL struct {
 }
 
 type Video struct {
-	Id           string       `xml:"videoId"`
-	Name         string       `xml:"title"`
-	Published    time.Time    `xml:"published"`
-	ThumbnailURL ThumbnailURL `xml:"group>thumbnail"`
-	Description  string       `xml:"group>description"`
+	Id          string    `xml:"videoId"`
+	Name        string    `xml:"title"`
+	Published   time.Time `xml:"published"`
+	Thumbnail   Thumbnail `xml:"group>thumbnail"`
+	Description string    `xml:"group>description"`
 }
 
-type ThumbnailURL struct {
+type Thumbnail struct {
 	Text string `xml:"url,attr"`
+	Id   string `xml:"-"`
 }
 
 type FeedTemplateContext struct {
@@ -51,13 +53,14 @@ type FeedTemplateContext struct {
 func main() {
 	staticDirectory := os.Getenv("STATIC_DIR")
 	if len(staticDirectory) == 0 {
-		staticDirectory = "/srv/tubefling"
+		staticDirectory = "stat"
 	}
 	tempDirectory := os.Getenv("TEMP_DIR")
 	if len(tempDirectory) == 0 {
-		tempDirectory = "/tmp"
+		tempDirectory = "tmp"
 	}
-	authTokens := strings.Split(os.Getenv("AUTHORIZED_TOKENS"), ",")
+	authTokens := []string{"loltoken"}
+	// authTokens := strings.Split(os.Getenv("AUTHORIZED_TOKENS"), ",")
 	server := echo.New()
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())
@@ -89,7 +92,7 @@ func main() {
 						<title>{{.Name}}</title>
 						<description>{{.Description}}</description>
 						<itunes:summary>{{.Description}}</itunes:summary>
-						<itunes:image href="{{.ThumbnailURL.Text}}"/>
+						<itunes:image href="{{$.ServerBaseURL}}/{{.Thumbnail.Id}}.jpg"/>
 						<guid>{{$.ServerBaseURL}}/video/{{.Id}}.mp3</guid>
 						<link>{{$.ServerBaseURL}}/video/{{.Id}}.mp3</link>
 						<enclosure url="{{$.ServerBaseURL}}/video/{{.Id}}.mp3" type="audio/mpeg"/>
@@ -126,6 +129,9 @@ func buildChannelRoute(logger echo.Logger, feedTemplate *template.Template, stat
 			logger.Error(err)
 			return c.String(http.StatusInternalServerError, "Could not parse channel data")
 		}
+		for idx := range channelData.Videos {
+			channelData.Videos[idx].Thumbnail.Id = channelData.Videos[idx].Thumbnail.Text[24 : len(channelData.Videos[idx].Thumbnail.Text)-14] // Kludge
+		}
 		iconFileName := fmt.Sprintf("%s.png", channelData.Id)
 		// Create static assets if they don't exist
 		if _, err := os.Stat(path.Join(staticDirectory, iconFileName)); os.IsNotExist(err) {
@@ -144,6 +150,16 @@ func buildChannelRoute(logger echo.Logger, feedTemplate *template.Template, stat
 			if err != nil {
 				logger.Error(err)
 				return c.String(http.StatusInternalServerError, "Could not encode channel icon png")
+			}
+			for _, video := range channelData.Videos {
+				thumb, err := os.Create(path.Join(staticDirectory, video.Thumbnail.Id+".jpg"))
+				if err != nil {
+					logger.Error(err)
+					return c.String(http.StatusInternalServerError, "Could not create thumbnail file")
+				}
+				resp, err := http.Get(video.Thumbnail.Text)
+				defer resp.Body.Close()
+				io.Copy(thumb, resp.Body)
 			}
 		}
 		var response bytes.Buffer

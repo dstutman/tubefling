@@ -1,17 +1,7 @@
-FROM python:3.6-slim
-
-RUN apt-get -y update \
-    && apt-get -y install nginx \
-    && apt-get -y install python3-dev \
-    && apt-get -y install build-essential \
-    && apt-get -y install ffmpeg \
-    && apt-get clean
-
-RUN pip install gunicorn flask requests pagan youtube-dl
-
-COPY src/main.py /srv/tubefling/main.py
-WORKDIR /srv/tubefling/
-
-EXPOSE 80
-ENV GUNICORN_TIMEOUT 120
-CMD gunicorn -w 8 -b 0.0.0.0:80 --timeout ${GUNICORN_TIMEOUT} main:server
+FROM golang:latest
+RUN apt-get update && apt-get install -y ffmpeg
+RUN mkdir /app
+ADD . /app/
+WORKDIR /app
+RUN go build -o main .
+CMD ["/app/main"]
